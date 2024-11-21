@@ -12,9 +12,8 @@ variable "aws_region" {
   default   = "<%=customOptions.awsRegion%>"
 }
 variable "public_key" {
-  type      = string
-  sensitive = true
-  default   = "<%= cypher.read('password/public_key') %>"
+  type    = string
+  default = "<%= cypher.read('password/public_key') %>"
 }
 variable "count_of_workers" {
   type    = number
