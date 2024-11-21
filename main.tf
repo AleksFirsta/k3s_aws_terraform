@@ -246,6 +246,13 @@ resource "aws_instance" "nginx" {
 
   depends_on = [aws_internet_gateway.gw]
 }
+data "template_file" "user_data" {
+  template = file("./user_data.sh")
+
+  vars = {
+    master_ip = aws_instance.k3s_master.private_ip
+  }
+}
 # K3s Master Node
 resource "aws_instance" "k3s_master" {
   ami           = data.aws_ami.ubuntu_24_04.id
@@ -281,15 +288,7 @@ resource "aws_instance" "k3s_workers" {
 
   vpc_security_group_ids = [aws_security_group.k3s.id]
 
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update
-              apt-get install -y curl
-              MASTER_IP="${aws_instance.k3s_master.private_ip}"
-              SSH_USER="ubuntu"
-              TOKEN=$(ssh -o StrictHostKeyChecking=no ${SSH_USER}@${MASTER_IP} -t "sudo cat /var/lib/rancher/k3s/server/node-token")
-              curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN=$TOKEN sh -
-              EOF
+  user_data = data.template_file.user_data.rendered
 
   tags = {
     Name = "K3s Worker Node ${count.index + 1}"
