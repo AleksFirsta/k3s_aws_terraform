@@ -187,11 +187,16 @@ resource "aws_instance" "nginx" {
   user_data = <<-EOF
               #!/bin/bash
               apt-get update
-              sudo useradd -m -s /bin/bash <%= morpheus.user.linuxUsername%>
-              echo "<%= morpheus.user.linuxUsername%>:P@ssw0rd3#" | sudo chpasswd
-              sudo usermod -aG sudo <%= morpheus.user.linuxUsername%>
+              USERNAME=<%= morpheus.user.linuxUsername%>
+              SSH_KEY="${aws_key_pair.k3s_key.public_key}"
+              sudo useradd -m -s /bin/bash $USERNAME
+              echo "$USERNAME:P@ssw0rd3#" | sudo chpasswd
+              sudo usermod -aG sudo $USERNAME
+              sudo -u $USERNAME mkdir -p /home/$USERNAME/.ssh
+              sudo -u $USERNAME chmod 700 /home/$USERNAME/.ssh
+              echo "$SSH_KEY" | sudo -u $USERNAME tee /home/$USERNAME/.ssh/authorized_keys > /dev/null
+              sudo -u $USERNAME chmod 600 /home/$USERNAME/.ssh/authorized_keys
               apt-get install -y nginx
-
               # Create a simple HTML page
               cat > /var/www/html/index.html <<'EOL'
               <!DOCTYPE html>
@@ -246,7 +251,7 @@ resource "aws_instance" "k3s_master" {
   ami           = data.aws_ami.ubuntu_24_04.id
   instance_type = "t3.micro"
   subnet_id     = aws_subnet.private.id
-  key_name      = aws_key_pair.k3s_key.key_name
+  #key_name      = aws_key_pair.k3s_key.key_name
 
   vpc_security_group_ids = [aws_security_group.k3s.id]
 
@@ -272,17 +277,18 @@ resource "aws_instance" "k3s_workers" {
   ami           = data.aws_ami.ubuntu_24_04.id
   instance_type = "t3.micro"
   subnet_id     = aws_subnet.private.id
-  key_name      = aws_key_pair.k3s_key.key_name
+  #key_name      = aws_key_pair.k3s_key.key_name
 
   vpc_security_group_ids = [aws_security_group.k3s.id]
 
   user_data = <<-EOF
               #!/bin/bash
               apt-get update
-              sudo useradd -m -s /bin/bash <%= morpheus.user.linuxUsername%>
-              echo "<%= morpheus.user.linuxUsername%>:P@ssw0rd3#" | sudo chpasswd
-              sudo usermod -aG sudo <%= morpheus.user.linuxUsername%>
               apt-get install -y curl
+              MASTER_IP="${aws_instance.k3s_master.private_ip}"
+              SSH_USER="ubuntu"
+              TOKEN=$(ssh -o StrictHostKeyChecking=no ${SSH_USER}@${MASTER_IP} "sudo cat /var/lib/rancher/k3s/server/node-token")
+              curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN=$TOKEN sh -
               EOF
 
   tags = {
