@@ -287,7 +287,7 @@ resource "aws_instance" "k3s_workers" {
               apt-get install -y curl
               MASTER_IP="${aws_instance.k3s_master.private_ip}"
               SSH_USER="ubuntu"
-              TOKEN=$(ssh -o StrictHostKeyChecking=no ${SSH_USER}@${MASTER_IP} "sudo cat /var/lib/rancher/k3s/server/node-token")
+              TOKEN=$(ssh -o StrictHostKeyChecking=no ${SSH_USER}@${MASTER_IP} -t "sudo cat /var/lib/rancher/k3s/server/node-token")
               curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN=$TOKEN sh -
               EOF
 
