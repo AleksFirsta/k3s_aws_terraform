@@ -1,21 +1,22 @@
+# Variables
 variable "access_key" {
-  type      = string
   sensitive = true
+  type      = string
 }
 variable "secret_key" {
-  type      = string
   sensitive = true
+  type      = string
 }
 variable "aws_region" {
-  type      = string
-  sensitive = false
-  default   = "<%=customOptions.awsRegion%>"
-}
-variable "public_key" {
   type    = string
-  default = "<%= cypher.read('password/public_key') %>"
+  default = "<%=customOptions.awsRegion%>"
 }
 variable "count_of_workers" {
   type    = number
-  default = 1
+  default = 1 #Заменить на опцию из морфиуса и добавить в tfvars 
+}
+variable "public_key" {
+  sensitive = true
+  type      = string
+  default   = "value"
 }

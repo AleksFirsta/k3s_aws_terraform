@@ -168,7 +168,7 @@ resource "aws_security_group" "k3s" {
     Name = "K3s Security Group"
   }
 }
-#195 from origin
+# Key Pair
 resource "aws_key_pair" "k3s_key" {
   key_name   = "k3s-key"
   public_key = var.public_key
@@ -187,16 +187,8 @@ resource "aws_instance" "nginx" {
   user_data = <<-EOF
               #!/bin/bash
               apt-get update
-              USERNAME=<%= morpheus.user.linuxUsername%>
-              SSH_KEY="${aws_key_pair.k3s_key.public_key}"
-              sudo useradd -m -s /bin/bash $USERNAME
-              echo "$USERNAME:P@ssw0rd3#" | sudo chpasswd
-              sudo usermod -aG sudo $USERNAME
-              sudo -u $USERNAME mkdir -p /home/$USERNAME/.ssh
-              sudo -u $USERNAME chmod 700 /home/$USERNAME/.ssh
-              echo "$SSH_KEY" | sudo -u $USERNAME tee /home/$USERNAME/.ssh/authorized_keys > /dev/null
-              sudo -u $USERNAME chmod 600 /home/$USERNAME/.ssh/authorized_keys
               apt-get install -y nginx
+
               # Create a simple HTML page
               cat > /var/www/html/index.html <<'EOL'
               <!DOCTYPE html>
@@ -246,28 +238,19 @@ resource "aws_instance" "nginx" {
 
   depends_on = [aws_internet_gateway.gw]
 }
-data "template_file" "user_data" {
-  template = file("./user_data.sh")
 
-  vars = {
-    master_ip = aws_instance.k3s_master.private_ip
-  }
-}
 # K3s Master Node
 resource "aws_instance" "k3s_master" {
   ami           = data.aws_ami.ubuntu_24_04.id
   instance_type = "t3.micro"
   subnet_id     = aws_subnet.private.id
-  #key_name      = aws_key_pair.k3s_key.key_name
+  key_name      = aws_key_pair.k3s_key.key_name
 
   vpc_security_group_ids = [aws_security_group.k3s.id]
 
   user_data = <<-EOF
               #!/bin/bash
               apt-get update
-              sudo useradd -m -s /bin/bash <%= morpheus.user.linuxUsername%>
-              echo "<%= morpheus.user.linuxUsername%>:P@ssw0rd3#" | sudo chpasswd
-              sudo usermod -aG sudo <%= morpheus.user.linuxUsername%>
               apt-get install -y curl
               curl -sfL https://get.k3s.io | sh -
               EOF
@@ -284,15 +267,47 @@ resource "aws_instance" "k3s_workers" {
   ami           = data.aws_ami.ubuntu_24_04.id
   instance_type = "t3.micro"
   subnet_id     = aws_subnet.private.id
-  #key_name      = aws_key_pair.k3s_key.key_name
+  key_name      = aws_key_pair.k3s_key.key_name
 
   vpc_security_group_ids = [aws_security_group.k3s.id]
 
-  user_data = data.template_file.user_data.rendered
+  user_data = <<-EOF
+              #!/bin/bash
+              apt-get update
+              apt-get install -y curl
+              #MASTER_IP=${aws_instance.k3s_master.public_ip}
+              #TOKEN=$(ssh -o StrictHostKeyChecking=no ubuntu@${aws_instance.k3s_master.public_ip} -t "sudo cat /var/lib/rancher/k3s/server/node-token")
+              #curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN=$TOKEN sh -
+              EOF
 
   tags = {
     Name = "K3s Worker Node ${count.index + 1}"
   }
 
-  depends_on = [aws_nat_gateway.main]
+  depends_on = [aws_nat_gateway.main, aws_instance.k3s_master]
+}
+
+# 1. copy ssh key to nginx 
+
+resource "null_resource" "name" {
+  depends_on = [aws_instance.k3s_workers, aws_instance.k3s_master]
+  triggers = {
+    resource_id = aws_instance.nginx.id
+
+  }
+  provisioner "file" {
+    source      = "/home/aleks/.ssh/id_rsa"
+    destination = "/home/ubuntu/.ssh/id_rsa"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo chmod 600 ~/.ssh/id_rsa"
+    ]
+  }
+  connection {
+    type        = "ssh"
+    host        = aws_instance.nginx.public_ip
+    user        = "ubuntu"
+    private_key = file("~/.ssh/id_rsa")
+  }
 }
