@@ -19,8 +19,8 @@ variable "public_key" {
   type      = string
   default   = "value_from_tfvars"
 }
-variable "private_key" {
-  type      = string
-  sensitive = true
-  default   = "value_from_tfvars"
-}
+# variable "private_key" {
+#   type      = string
+#   sensitive = true
+#   default   = "value_from_tfvars"
+# }
