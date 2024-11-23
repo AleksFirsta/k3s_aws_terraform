@@ -12,11 +12,10 @@ variable "aws_region" {
   default = "<%=customOptions.awsRegion%>"
 }
 variable "count_of_workers" {
-  type    = number
-  default = 1 #Заменить на опцию из морфиуса и добавить в tfvars 
+  default = "<%=customOptions.count_workers%>"
 }
 variable "public_key" {
   sensitive = true
   type      = string
-  default   = "value"
+  default   = "value_from_tfvars"
 }
