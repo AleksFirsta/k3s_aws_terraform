@@ -308,6 +308,6 @@ resource "null_resource" "name" {
     type        = "ssh"
     host        = aws_instance.nginx.public_ip
     user        = "ubuntu"
-    private_key = file("~/.ssh/id_rsa")
+    private_key = var.private_key
   }
 }
