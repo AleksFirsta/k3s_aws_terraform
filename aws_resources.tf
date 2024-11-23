@@ -238,7 +238,6 @@ resource "aws_instance" "nginx" {
 
   depends_on = [aws_internet_gateway.gw]
 }
-
 # K3s Master Node
 resource "aws_instance" "k3s_master" {
   ami           = data.aws_ami.ubuntu_24_04.id
@@ -287,27 +286,3 @@ resource "aws_instance" "k3s_workers" {
   depends_on = [aws_nat_gateway.main, aws_instance.k3s_master]
 }
 
-# 1. copy ssh key to nginx 
-
-# resource "null_resource" "name" {
-#   depends_on = [aws_instance.k3s_workers, aws_instance.k3s_master]
-#   triggers = {
-#     resource_id = aws_instance.nginx.id
-
-#   }
-#   provisioner "file" {
-#     source      = "/home/aleks/.ssh/id_rsa"
-#     destination = "/home/ubuntu/.ssh/id_rsa"
-#   }
-#   provisioner "remote-exec" {
-#     inline = [
-#       "sudo chmod 600 ~/.ssh/id_rsa"
-#     ]
-#   }
-#   connection {
-#     type        = "ssh"
-#     host        = aws_instance.nginx.public_ip
-#     user        = "ubuntu"
-#     private_key = var.private_key
-#   }
-# }

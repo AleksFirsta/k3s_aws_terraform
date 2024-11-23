@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "5.76.0"
     }
+    morpheus = {
+      source  = "gomorpheus/morpheus"
+      version = "0.10.0"
+    }
   }
 }
 
@@ -18,4 +22,9 @@ provider "aws" {
       Owner       = "Grigorenko"
     }
   }
+}
+provider "morpheus" {
+  url          = var.morpheus_url
+  access_token = var.access_token
+
 }

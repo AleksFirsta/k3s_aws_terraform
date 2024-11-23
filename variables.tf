@@ -19,8 +19,14 @@ variable "public_key" {
   type      = string
   default   = "value_from_tfvars"
 }
-# variable "private_key" {
-#   type      = string
-#   sensitive = true
-#   default   = "value_from_tfvars"
-# }
+
+variable "morpheus_url" {
+  type    = string
+  default = "https://morpheus.aruba.lab"
+}
+variable "morpheus_access_token" {
+  type      = string
+  sensitive = true
+  default   = "value_from_tfvars"
+}
+
