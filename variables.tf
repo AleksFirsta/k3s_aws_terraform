@@ -14,11 +14,6 @@ variable "aws_region" {
 variable "count_of_workers" {
   default = "<%=customOptions.count_workers%>"
 }
-variable "public_key" {
-  sensitive = true
-  type      = string
-  default   = "value_from_tfvars"
-}
 
 variable "morpheus_url" {
   type    = string
