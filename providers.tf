@@ -10,12 +10,11 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "terraform-morpheus-int"
-    key    = "terraform/main.tfstate"
-    region = "eu-north-1"
-    #####Morpheus_only
-    #access_key = var.access_key
-    #secret_key = var.secret_key
+    bucket     = "terraform-morpheus-int"
+    key        = "terraform/main.tfstate"
+    region     = "eu-north-1"
+    access_key = "<%=cypher.read('secret/awsautomation').tokenize('|')[0]%>"
+    secret_key = "<%=cypher.read('secret/awsautomation').tokenize('|')[1]%>"
   }
 }
 
