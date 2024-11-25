@@ -9,6 +9,13 @@ terraform {
       version = "0.10.0"
     }
   }
+  backend "s3" {
+    bucket     = "terraform-morpheus-int"
+    key        = "terraform/main.tfstate"
+    region     = "eu-north-1"
+    access_key = var.access_key
+    secret_key = var.secret_key
+  }
 }
 
 provider "aws" {
@@ -25,6 +32,6 @@ provider "aws" {
 }
 provider "morpheus" {
   url          = var.morpheus_url
-  access_token = var.access_token
+  access_token = var.morpheus_access_token
 
 }
