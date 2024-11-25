@@ -19,9 +19,11 @@ terraform {
 }
 
 provider "aws" {
-  region     = var.aws_region
-  access_key = var.access_key
-  secret_key = var.secret_key
+  region = var.aws_region
+  # access_key = var.access_key
+  # secret_key = var.secret_key
+  access_key = "<%=cypher.read('secret/awsautomation').tokenize('|')[0]%>"
+  secret_key = "<%=cypher.read('secret/awsautomation').tokenize('|')[1]%>"
   default_tags {
     tags = {
       Environment = "Morpheus"
@@ -32,6 +34,6 @@ provider "aws" {
 }
 provider "morpheus" {
   url          = var.morpheus_url
-  access_token = var.morpheus_access_token
+  access_token = "<%=cypher.read('secret/awsautomation').tokenize('|')[2]%>"
 
 }
