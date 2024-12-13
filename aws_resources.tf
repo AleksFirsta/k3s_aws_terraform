@@ -235,28 +235,6 @@ resource "aws_instance" "nginx" {
     Name = "NGINX Load Balancer"
   }
 
-    connection{
-    type = "ssh"
-    user = "ubuntu"
-    private_key = tls_private_key.k3s_connect_aws.private_key_pem
-    host = aws_instance.nginx.public_ip
-  }
-  provisioner "file"{
-    content = <<EOF
-    "${tls_private_key.k3s_connect_aws.private_key_pem}"
-    EOF
-    destination = "/tmp/private_key.pem"
-  }
-  provisioner "remote-exec" {
-    inline = [
-      "mkdir ~/.ssh",
-      "cp /tmp/private_key.pem ~/.ssh/",
-      "rm /tmp/private_key.pem",
-      "sudo chown ubuntu:ubuntu ~/.ssh/private_key.pem",
-      "sudo chmod 600 ~/.ssh/private_key.pem"
-    ]
-  }
-
   depends_on = [aws_internet_gateway.gw, local_file.tls_private_key]
 }
 # K3s Master Node
@@ -316,4 +294,28 @@ resource "local_file" "tls_private_key" {
   content    = tls_private_key.k3s_connect_aws.private_key_pem
   filename   = "./private_key.pem"
   depends_on = [tls_private_key.k3s_connect_aws]
+}
+
+resource "null_resource" "run_commands"{
+     connection{
+    type = "ssh"
+    user = "ubuntu"
+    private_key = tls_private_key.k3s_connect_aws.private_key_pem
+    host = aws_instance.nginx.public_ip
+  }
+  provisioner "file"{
+    content = <<EOF
+    "${tls_private_key.k3s_connect_aws.private_key_pem}"
+    EOF
+    destination = "/tmp/private_key.pem"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir ~/.ssh",
+      "cp /tmp/private_key.pem ~/.ssh/",
+      "rm /tmp/private_key.pem",
+      "sudo chown ubuntu:ubuntu ~/.ssh/private_key.pem",
+      "sudo chmod 600 ~/.ssh/private_key.pem"
+    ]
+  }
 }
