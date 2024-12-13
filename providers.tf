@@ -28,3 +28,5 @@ provider "morpheus" {
   access_token = var.morpheus_access_token
 
 }
+provider "tls"{
+}

@@ -8,8 +8,8 @@ resource "morpheus_ansible_playbook_task" "k3sconfig" {
   depends_on      = [aws_instance.nginx]
 }
 
-# пример без использования инвентаря
-# ansible-playbook -i "web1,web2," playbook.yml \
-#   --user remoteuser \
-#   --private-key ~/.ssh/remote_key \
-#   --ssh-common-args='-o ProxyJump=jumpuser@192.168.1.100'
+resource "morpheus_key_pair" "k3s_connect_aws"{
+  name= "k3s_aws_connect"
+  public_key = tls_private_key.k3s_connect_aws.public_key_openssh
+  private_key = tls_private_key.k3s_connect_aws.private_key_pem
+}

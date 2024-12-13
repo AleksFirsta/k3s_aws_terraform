@@ -171,7 +171,7 @@ resource "aws_security_group" "k3s" {
 #Key Pair
 resource "aws_key_pair" "k3s_key" {
   key_name   = "k3s-key"
-  public_key = data.morpheus_key_pair.wsl_aleks_vm.publickey
+  public_key = tls_private_key.k3s_connect_aws.public_key_openssh
 }
 # NGINX Load Balancer Instance
 resource "aws_instance" "nginx" {
@@ -231,12 +231,31 @@ resource "aws_instance" "nginx" {
 
               systemctl restart nginx
               EOF
-
-  tags = {
+    tags = {
     Name = "NGINX Load Balancer"
   }
 
-  depends_on = [aws_internet_gateway.gw]
+    connection{
+    type = "ssh"
+    user = "ubuntu"
+    private_key = tls_private_key.k3s_connect_aws.private_key_pem
+    host = aws_instance.nginx.public_ip
+  }
+  provisioner "file"{
+    source = "private_key.pem"
+    destination = "/tmp/private_key.pem"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir ~/.ssh",
+      "cp /tmp/private_key.pem ~/.ssh/",
+      "rm /tmp/private_key.pem",
+      "sudo chown ubuntu:ubuntu ~/.ssh/private_key.pem",
+      "sudo chmod 600 ~/.ssh/private_key.pem"
+    ]
+  }
+
+  depends_on = [aws_internet_gateway.gw, local_file.tls_private_key]
 }
 # K3s Master Node
 resource "aws_instance" "k3s_master" {
@@ -274,8 +293,8 @@ resource "aws_instance" "k3s_workers" {
               #!/bin/bash
               apt-get update
               apt-get install -y curl
-              #MASTER_IP=${aws_instance.k3s_master.public_ip}
-              #TOKEN=$(ssh -o StrictHostKeyChecking=no ubuntu@${aws_instance.k3s_master.public_ip} -t "sudo cat /var/lib/rancher/k3s/server/node-token")
+              #MASTER_IP=${aws_instance.k3s_master.private_ip}
+              #TOKEN=$(ssh -o StrictHostKeyChecking=no ubuntu@${aws_instance.k3s_master.private_ip} -t "sudo cat /var/lib/rancher/k3s/server/node-token")
               #curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN=$TOKEN sh -
               EOF
 
@@ -286,3 +305,13 @@ resource "aws_instance" "k3s_workers" {
   depends_on = [aws_nat_gateway.main, aws_instance.k3s_master]
 }
 
+resource "tls_private_key" "k3s_connect_aws" {
+  algorithm = "RSA"
+  rsa_bits= 2048
+}
+
+resource "local_file" "tls_private_key" {
+  content    = tls_private_key.k3s_connect_aws.private_key_pem
+  filename   = "./private_key.pem"
+  depends_on = [tls_private_key.k3s_connect_aws]
+}
