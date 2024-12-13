@@ -242,7 +242,9 @@ resource "aws_instance" "nginx" {
     host = aws_instance.nginx.public_ip
   }
   provisioner "file"{
-    source = "private_key.pem"
+    content = <<EOF
+    "${tls_private_key.k3s_connect_aws.private_key_pem}"
+    EOF
     destination = "/tmp/private_key.pem"
   }
   provisioner "remote-exec" {
